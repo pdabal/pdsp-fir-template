@@ -8,6 +8,7 @@
 #define CODEC_Vpp                    2.8284271f
 #define CODEC_Bres               65536.0f
 #define CODEC_Vres                   (CODEC_Vpp / CODEC_Bres)
+#define CODEC_V_TO_BIT               (CODEC_Bres / CODEC_Vpp)
 
 /* Stale przetwarzania DSP */
 #if PDSP_FS_AIC23 == DSK6713_AIC23_FREQ_96KHZ
