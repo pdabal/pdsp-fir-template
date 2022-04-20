@@ -7,36 +7,70 @@
  * Przeznaczenie:   Funkcja wejœcia dla programu
  */
 
-#include "stdio.h"
-#include "csl.h"
+#include "pdsp.h"
 
-#include "dsk6713.h"
-#include "dsk6713_led.h"
-#include "dsk6713_aic23.h"
+volatile bool NewData = false;              // Flaga informuj¹ca o otrzymaniu nowej próbki
 
-DSK6713_AIC23_CodecHandle hAIC23;                                   // Uchwyt do sterownika kodeka
-DSK6713_AIC23_Config AIC23_regs_cfg = DSK6713_AIC23_DEFAULTCONFIG;  // Domyœlna konfiguracja kodeka
+CODEC_Data DataIn, DataOut;                 // Zmienne do przechowywania próbek odebranej/wysy³anej
+CODEC_Data Samples[BUFFER_LENGTH];          // Bufor próbek
+Uint32 SampleNumber;
 
-int main(void)
+void main()
 {
-    Uint32  sample;
-
-    CSL_init();
-    DSK6713_init();
-    DSK6713_LED_init();
-
-    printf("Hello World - Procesory DSP.\n");
-    printf("Data: %s - %s - ", __DATE__, __TIME__);
-    printf("wersja systemu: %d\n", DSK6713_getVersion());
-
-    hAIC23 = DSK6713_AIC23_openCodec(0, &AIC23_regs_cfg);   // Konfiguracja interfejsów i rejestrów kodeka
-    DSK6713_AIC23_setFreq(hAIC23, DSK6713_AIC23_FREQ_8KHZ); // Ustawienie czêstotliwoœci próbkowania
+    PDSP_Init();
+    PDSP_CODEC_Init();
+    PDSP_INT_Init();
 
     while (1)
     {
-        while(DSK6713_AIC23_read(hAIC23, &sample) == 0);    // Odczyt próbki odebranej od kodeka
-        while(DSK6713_AIC23_write(hAIC23, sample * 2) == 0);// Wys³anie próbki do kodeka
-        DSK6713_LED_toggle(1);
+#if PDSP_MODE == PDSP_MODE_POLL
+        DataIn = CODEC_GetSampleStereo();  // Odczytanie nowej próbki od kodeka
+        CODEC_SetSampleStereo(DataOut);  // Wys³anie próbki do kodeka
+        SampleNumber++;
+        // Przetwarzanie
+        DataOut = DataIn;
+#elif PDSP_MODE == PDSP_MODE_INT
+        if (NewData == true)
+        {
+            NewData = false;
+            // Przetwarzanie
+            DataOut = DataIn;
+        }
+#endif
     }
 }
 
+/*----------------------------------------------------------------------*/
+/*
+ * Funkcja obs³ugi przerwania od kodeka AIC23
+ */
+CODEC_IRQ
+{
+    DataIn = CODEC_GetSampleStereo();   // Odczytanie nowej próbki od kodeka
+    CODEC_SetSampleStereo(DataOut);// Wys³anie próbki do kodeka
+
+    NewData = true;// Ustawienie flagi obecnoœci nowych danych
+
+    SampleNumber++;
+
+    DSK6713_LED_toggle(3);// Sygnalizacja obs³ugi przerwania
+    return;
+}
+
+/**
+ * Funkcja obs³ugi przerwania INT15 dla licznika TIM0
+ */
+TIMER0_IRQ
+{
+    DSK6713_LED_toggle(0);
+    return;
+}
+
+/**
+ * Funkcja obs³ugi przerwania INT15 dla licznika TIM1
+ */
+TIMER1_IRQ
+{
+    DSK6713_LED_toggle(1);
+    return;
+}
