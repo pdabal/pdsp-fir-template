@@ -1,5 +1,5 @@
 # Parametry projektu
-Nazwa:  pdsp-1-generator  
+Nazwa:  pdsp-7-fir  
 Autor:  Paweł Dąbal (pawel.dabal@wat.edu.pl)  
 Opis:   Projekt bazowy repozytorium na drugie spotkanie laboratoryjne z przedmiotu *Procesory DSP*.  
 Wersja: v2022.0.1  
